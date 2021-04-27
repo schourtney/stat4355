@@ -1,0 +1,193 @@
+---
+title: "STAT4355HW6"
+author: "Courtney Schaller"
+date: "4/1/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(multcomp)
+```
+\begin{aligned}
+&\text { 1. (Chapter 3, p. 82) Show that the expected value of the fitted value at } \boldsymbol{x}_{0} \text { is } E\left(\hat{y}_{0}\right)=\boldsymbol{x}_{0}^{\prime} \beta \text { and its variance is }\\
+&\operatorname{Var}\left(\hat{y}_{0}\right)=\sigma^{2} \boldsymbol{x}_{0}^{\prime}\left(\boldsymbol{X}^{\prime} \boldsymbol{X}\right)^{-1} \boldsymbol{x}_{0} .(10 \text { points })
+\end{aligned}
+
+$\widehat{y_{0}}=\mathbf{x}_{0}^{\prime} \widehat{\boldsymbol{\beta}}$
+so the expectation of $y$ given $x_0$, the mean x value, should be the model's prediction at $x_0$, i.e. $E(y|x_0) = \beta_0 + \beta_1x_{0_1} + \dots + \beta_nx_{0_n}$
+
+$\operatorname{Var}\left(\hat{\boldsymbol{\beta}}_{n}\right)=\operatorname{Var}\left(\left(\mathbf{X}_{n}^{\prime} \mathbf{X}_{n}\right)^{-1} \mathbf{X}_{\mathbf{n}}^{\prime} \mathbf{y}\right)$
+
+So $y = x_1\beta_1 + \dots + x_n\beta_n$
+has variance 
+
+```{r}
+football <- read.csv(
+  "https://raw.githubusercontent.com/schourtney/stat4355/main/football.csv",
+                     header=T)
+```
+We fit a multiple linear regression model relating the number of games won (y) to the team’s passing yardage
+(x2), the percentage of rushing plays (x7), and the opponents’ yards rushing (x8). We assume that the errors are normally distributed.
+
+(a) Write down the fitted linear model and report (i) the variance estimate, (ii) R2 and (iii) adjusted R2. (5 points)
+```{r}
+lm <- lm(data = football, y ~ x2 + x7 + x8)
+summary(lm)
+x2 = 0.003598
+x8 = -0.004816
+n = 28
+p = 4
+```
+$y=-1.808372+0.003598x_2+0.193960x_7-x_80.004816$
+\newline
+$\sigma^2 =`r (summary(lm)\$sigma)^2`$ \newline
+$R^2 = 1.706$ \newline
+Adjusted $R^2 = $ 0.7596$
+(b) Test whether or not the regression parameter for passing yardage and the regression parameter for the opponents’ yards rushing are the same in magnitude, but opposite in direction. (20 points)
+
+i. Write down the null and alternative hypotheses. (3 points)
+$H_0: \beta_2=\beta_8$ \newline
+$H_a: \beta_2\neq\beta_8$
+
+ii. Rewrite the null and alternative hypotheses with appropriate D and d for the general linear hypothesis
+approach. (3 points)
+$H_0: D\beta=d, D = \begin{bmatrix}
+ 0 & 1 & 0 & 1
+\end{bmatrix}$, 
+$d = 0$,
+$\beta = \begin{bmatrix}
+\beta_0 \\
+\beta_2 \\
+\beta_7 \\
+\beta_8 \\
+\end{bmatrix}$
+$H_a: D\beta\neq d$
+
+
+
+iii. Discuss which distribution $\beta$ˆ and D$\beta$ˆ follow. Specify the parameters of the distributions as well. The parameter expression may contain X, D and ˆ$\sigma^2$, where X = [1, x2, x7, x8] is a predictor matrix of size 28 × 4. (3 points)
+
+$\widehat{\boldsymbol{\beta}} \sim N\left(\widehat{\boldsymbol{\beta}}, \sigma^{2}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\right) = N\left(0, \sigma^{2}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\right)$ and $D\widehat{\boldsymbol{\beta}} \sim N\left(\mathbf{D} \boldsymbol{\beta}, \sigma^{2} \mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right) = N\left(0, \sigma^{2} \mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right)$  
+
+iv. Write down the mathematical expression of the test statistic you will use for the hypothesis test. The
+expression may contain X, $\beta$ and $\sigma^2$. (3 points)
+
+$F_{0}=\frac{(\mathbf{D} \widehat{\boldsymbol{\beta}}-\mathbf{d})^{\prime}\left[\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right]^{-1}(\mathbf{D} \widehat{\boldsymbol{\beta}}-\mathbf{d})}{r\sigma^2} = \frac{(`r x2` + `r x8`)^2}{\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\mathbf{D'}\sigma^2} = \frac{(`r x2 + x8`)^2}{\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\mathbf{D'}\sigma^2}$
+
+v. Specify which distribution the test statistic follows with appropriate numbers of degrees of freedom.
+(3 points)
+
+$F_{1, 'r n-p'}$
+
+vi. Find the observed test statistic, p-value, and draw a conclusion. (5 points)
+```{r}
+D = matrix(c(0,1,0,1),1,4)
+d = 0
+```
+
+```{r}
+qf(0.05, 1, n-p, lower.tail = FALSE)
+test <- glht(model = lm, linfct = D, rhs = d)
+summary(test, test = Ftest())
+```
+We fail to reject the null hypothesis and realize it is very unlikely that $\beta_2 = -\beta_8$
+
+(c) Test the null hypothesis that both the team’s passing yardage and the opponents’ yards rushing do not impact the number of games won but a unit increase in the team's rushing plays percent increases the
+number of games won by 0.2. (20 points)
+
+i. Write down the null and alternative hypotheses with $\beta_2, \beta_8, \beta_7$. (3 points)
+$\beta_2 = \beta_8 = 0, \beta_7 = 0.2$
+
+ii. Rewrite the null and alternative hypotheses with appropriate D and d for the general linear hypothesis
+approach. (3 points)
+$H_0: D\beta=d, D = \begin{bmatrix}
+ 0 & 1 & 0 & 0 \\
+ 0 & 0 & 0 & 1 \\
+ 0 & 0 & 1 & 0 \\
+\end{bmatrix}$, 
+$d = \begin{bmatrix}
+0 \\
+0 \\
+0.2 \\
+\end{bmatrix}$,
+$\beta = \begin{bmatrix}
+\beta_0 \\
+\beta_2 \\
+\beta_7 \\
+\beta_8 \\
+\end{bmatrix}$
+
+iii. Discuss which distribution $\hat{\beta}}$ and $D\hat{\beta}}$ follow. Specify the parameters of the distributions as well. The parameter expression may contain X, D and $\hat{\sigma^2}$ , where X = [1, x2, x7, x8] is a predictor matrix of
+size 28 × 4. (3 points)
+
+$\widehat{\boldsymbol{\beta}} \sim N\left(\widehat{\boldsymbol{\beta}}, \sigma^{2}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\right) = N\left(0, \sigma^{2}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\right)$ and $D\widehat{\boldsymbol{\beta}} \sim N\left(\mathbf{D} \boldsymbol{\beta}, \sigma^{2} \mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right) = N\left(0, \sigma^{2} \mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right)$  
+
+iv. Write down the mathematical expression of the test statistic you will use for the hypothesis test. The
+expression may contain X, $\hat{\beta} and $\hat{\sigma^2}$. (3 points)
+
+$F_{0}=\frac{(\mathbf{D} \widehat{\boldsymbol{\beta}}-\mathbf{d})^{\prime}\left[\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1} \mathbf{D}^{\prime}\right]^{-1}(\mathbf{D} \widehat{\boldsymbol{\beta}}-\mathbf{d})}{r\sigma^2} = \frac{(`r x2` + `r x8`)^2}{\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\mathbf{D'}\sigma^2} = \frac{(`r x2 + x8`)^2}{\mathbf{D}\left(\mathbf{X}^{\prime} \mathbf{X}\right)^{-1}\mathbf{D'}\sigma^2}$
+
+v. Specify which distribution the test statistic follows with appropriate numbers of degrees of freedom.
+(3 points)
+
+$F_{3, 24}$
+
+vi. Find the observed test statistic, p-value, and draw a conclusion. (5 points)
+```{r}
+D2 = matrix(c(0,1,0,0,0,0,0,1,0,0,1,0),3,4, byrow = T)
+d2 = c(0,0,.2)
+```
+
+```{r}
+qf(0.05, 3, 24, lower.tail = FALSE)
+test <- glht(model = lm, linfct = D2, rhs = d2)
+summary(test, test = Ftest())
+```
+
+(d) Find the 99 % confidence interval on the four individual coefficients ($\beta_0, \beta_2, \beta_7, \beta_8$). (5 points)
+
+```{r}
+X <- cbind(1, football$x2, football$x7, football$x8)
+C <- solve(t(X)%*%X)
+qt(0.025, 24, lower.tail = FALSE)
+cs = rep(0, 4)
+for(i in 1:4) {
+  cs[i] = (C[i,i])
+}
+cs
+```
+CI for $\beta_0 = -1.808 + `r cs[1]`$ 
+\newline
+CI for $\beta_2 = -1.808 + `r cs[2]`$ 
+\newline
+CI for $\beta_7 = -1.808 + `r cs[3]`$ 
+\newline
+CI for $\beta_8 = -1.808 + `r cs[4]`$ 
+
+(e) Find the 99 % confidence intervals on the mean number of games won by a team when (i) x2 = 2, 300,
+x7 = 56, x8 = 2, 100 and (ii) x2 = 2, 900, x7 = 61, x8 = 1, 900. (5 points)
+Hint: use level, which is an argument of predict.
+
+```{r}
+predict(lm, newdata = data.frame(x1 = 2300, x7 = 56, x8 = 2100), interval="confidence", level = 0.99)
+predict(lm, newdata = data.frame(x1 = 2900, x7 = 61, x8 = 1900), interval="confidence", level = .99) 
+```
+
+(f) Find the 99 % prediction intervals on a future observation when (i) x2 = 2, 300, x7 = 56, x8 = 2, 100 and (ii) x2 = 2, 900, x7 = 61, x8 = 1, 900. (5 points)
+Hint: use level, which is an argument of predict.
+
+```{r}
+predict(lm, newdata = data.frame(x1 = 2300, x7 = 56, x8 = 2100), interval="predict", level = 0.99)
+predict(lm, newdata = data.frame(x1 = 2900, x7 = 61, x8 = 1900), interval="predict", level = .99) 
+```
+
+
+
+(g) Compare the lengths of the PIs from (f) to the lengths of the corresponding CIs from (e). Discuss what makes them different. (5 points)
+The CIs and PIs have the same center, but the prediction interval is wider, as it is the prediction interval for ANY new random x1, x2, x3, while the confidence interval only captures the expectation for y itself. The prediction interval takes the natural error of y into account.
+(h) Attach the R code and console output you used for (a)-(g). (5 points)
+
+

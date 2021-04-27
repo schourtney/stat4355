@@ -1,0 +1,134 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+1.$$y=\beta_{0}+\beta_{1} x_{1}+\beta_{2} x_{2}+\beta_{3} x_{3}+\varepsilon$$
+(a) $$H_{0}: \beta_{1}+2 \beta_{2}=3$$
+$$D=\begin{bmatrix}
+ 0 & 1 & 2 & 0
+\end{bmatrix}$$
+$$d = 3$$
+(b) $$H_{0}: \frac{\beta_{1}+\beta_{2}}{2}=\beta_{3}$$
+$$D=\begin{bmatrix}
+ 0 & 1 & 1 & -2
+\end{bmatrix}$$
+$$d = 0$$
+(c) $H_{0}: \beta_{1}=\beta_{2}, \beta_{3}=\beta_{4}$
+$$D=\begin{bmatrix}
+ 0 & 1 & 0 & -1 & 0\\
+ 0 & 0 & 1 &  0 & -1
+\end{bmatrix}$$
+$$d = \begin{bmatrix}
+ 0 \\
+ 0
+\end{bmatrix}$$
+
+(d) $$H_{0}: \beta_{1}-2 \beta_{2}=4 \beta_{3}, \beta_{1}+2 \beta_{2}=0$$
+
+$$\begin{bmatrix}
+ 0 & 1 & -2 & -4\\
+ 0 & 1 & 2 &  0
+\end{bmatrix}$$
+
+$$d = \begin{bmatrix}
+ 0 \\
+ 0
+\end{bmatrix}$$
+
+(e) $H_{0}: \beta_{1}=\beta_{2}=\beta_{3}=\beta_{4}$
+
+$$\begin{bmatrix}
+ 0 & 1 & -1 &  0 & 0\\
+ 0 & 0 &  1 & -1 & 0\\
+ 0 & 0 &  0 &  1 & -1
+\end{bmatrix}$$
+
+$$d = \begin{bmatrix}
+ 0 \\
+ 0\\
+ 0
+\end{bmatrix}$$
+a.
+```{r}
+football <- read.csv(
+  "https://raw.githubusercontent.com/schourtney/stat4355/main/football.csv",
+                     header=T)
+
+x <- as.vector(colnames(football))[-c(1, 2)]
+ggplot(football, aes(x = .data[[x[1]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[2]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[3]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[4]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[5]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[6]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[7]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[8]]], y)) + geom_point()
+ggplot(football, aes(x = .data[[x[9]]], y)) + geom_point()
+```
+
+b.
+```{r}
+lm <- lm(y ~ x1 + x2 + x5 + x7 + x8, data = football)
+summary(lm)
+variance <- (summary(lm)$sigma)^2
+```
+The fitted linear model is $Y = -0.5165 + 0.0008X_1 + 0.0035X_2 + 0.0104X_5 + 0.1337X_7 - 0.0037X_8$
+Variance is $1.768^2$, or 3.1270
+$R^2 = 0.7896$, adjusted $R^2 = 0.7418$
+
+c.
+The parameter estimates $\hat{\beta_{k}}$ are such that with each unit increase in $X_1, X_2, X_5, \dots$, we expect an increase to y, number of games won, by $\hat{\beta_1}, \hat{\beta_2}, \hat{\beta_3}, \dots$, respectively. e.g. one increased rushing yard ($X_1$) would increase games won by $\hat{\beta_1}$. $\hat{\sigma}^2 = 3.1270$ is the variance in our predicted number of games won.
+
+d.
+```{r}
+anova(lm)
+SSreg <- sum(115.068, 83.343, 3.228, 18.051, 38.381)
+MSreg <- SSreg/5
+SourceOfVariation <- c("Regression", "Residual", "Total")
+SS <- c(SSreg, 68.794, SSreg+68.794)
+DF <- c(5, 22, 22+5)
+MS <- c(MSreg, 3.127, "")
+F <- c(MSreg/3.127, "", "")
+df <- data.frame(SourceOfVariation, SS, DF, MS, F)
+df
+```
+e.
+```{r}
+fit0 <- lm(y~1, data = football)
+anova(fit0, lm)
+SourceOfVariation <- c("Regression", "Residual", "Total")
+SS <- c(326.96-68.79, 68.79, 326.96)
+DF <- c(5, 22, 27)
+MS <- c(258.17/5, "", "")
+F <- c(16.512, "", "")
+df <- data.frame(SourceOfVariation, SS, DF, MS, F)
+df
+```
+f.
+Yes, the two tables are the same. Our 5-predictor model has a p-value of 8.363e-07<0.05, so we reject the null hypothesis and conclude that there is a linear relationship between the 5 X inputs (rushing yards, passing yards, etc.) and the number of games won (Y). Among these inputs, all appear to have a significant effect on Y except X1, X5, and X7 with p-values >0.05 (0.623008, 0.815766, and 0.341628, respectively.)
+
+g.
+(i). null hypothesis: $\hat{\beta_1}=0$
+alternative hypothesis: $\hat{\beta_1}\neq0$ \newline
+(ii). T-distribution, we will reject the null if our calculated t value is outside the bounds of $t_{0.025, 22}$ \newline
+(iii). t = 0.499, p = 0.623008, we fail to reject the null hypothesis and conclude the effect of passing yardage on overall games won is insignificant. There doesn't appear to be a linear relationship between these two variables.
+
+h.
+```{r}
+lm2 <- lm(y ~ x2 + x8, data = football)
+summary(lm2)
+```
+(i). null hypothesis: $\hat{\beta_2} = \hat{\beta_8} = 0$
+alt hypothesis: $\hat{\beta_2}, \hat{\beta_8} \neq 0$ \newline
+(ii). F-distribution, we will reject the null if our calculated f-statitstic is outside the bounds of $f_{\alpha = 0.05, f1=2, f2=25}$ \newline
+(iii). f-statistic is 36.19, p-val is 4.152e-08<0.05, we reject the null hypothesis and determine that there is a linear relationship between X2,X8 and Y.
+
+i. While R^2 is higher for the 5-predictor model, and therefore the model /could/ be better at predicting true number of games won, the interpretability of the 2-predictor model is better, and as the effect of the three extra predictors isn't significant, I prefer the 2-predictor model to avoid overfitting to training data.
+

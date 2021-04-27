@@ -1,0 +1,75 @@
+---
+title: "HW3 4355"
+author: "Courtney Schaller"
+date: "2/25/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+3. (R programming) The weight and systolic blood pressure of 26 randomly selected males in the age group 25–30 are found in the attached CSV file. 
+We fit a simple linear regression model relating systolic blood pressure (y)
+to weight (x). 
+
+(a) Draw the scatterplot of the data points with R function, plot. Add the linear regression line using the R
+function abline after plot. (10 points)
+Note: Present two plots: one is a scatterplot only and the other is a scatterplot with the regression line.
+
+```{r}
+g <- "C:\\Users\\Schaller\\Downloads\\hw2_systolic_bp.csv"
+df <- read.csv(g, header = TRUE)
+plot(df$ï..weight, df$sys.bp)
+plot(df$ï..weight, df$sys.bp)
+abline(lm(formula = df$sys.bp ~ df$ï..weight))
+```
+
+(b) Find the coefficient of determination (R2) and compute the total sum of squares (SST). Using the two, compute the regression sum of squares (SSR). (15 points)
+
+```{r}
+#R2 * SST = SSR
+model <- lm(sys.bp ~ ï..weight, data = df)
+R2 <- summary(model)$r.squared
+SST <- sum((df$sys.bp - mean(df$sys.bp))^2)
+SSR <- R2 * SST
+
+R2
+SST
+SSR
+```
+
+(c) Find the 99 % confidence interval on (i) the slope and the intercept, (ii) the mean response at x = 160, 180, 200, and (iii) 26 future observations whose weights are identical to the males’ in the dataset. (15 points) Hint: Create a data.frame, where x values are 160, 180, 200 for (ii) and all the 26 males’ weights for (iii). Specify an argument of confint or predict, level, to be 0.99. 
+
+```{r}
+confint(model, level=0.99)
+tests <- data.frame(ï..weight = c(160, 180, 200))
+
+predictions <- data.frame(predict(model, df, interval = 'prediction', level = 0.99))
+testpredictions <- data.frame(predict(model, tests, interval = 'confidence', level = 0.99))
+
+cbind(tests, testpredictions)
+pred.bp <- cbind(df, predictions)
+pred.bp
+```
+
+(d) Merge the data.frame object of the 26 data points with the prediction outcome object from (c) using R function cbind. Name the data.frame object of size 26 × 5 created pred.bp. Note: Present two plots: one is a scatterplot with the interval curve and the other is a scatterplot with
+both the interval and prediction curve. (10 points)
+
+```{r}
+pred.bp <- cbind(df, predictions)
+pred.bp
+#Draw the confidence interval curve using the commands below.
+library("ggplot2")
+p <- ggplot(pred.bp, aes(ï..weight, sys.bp)) +
+geom_point() +
+stat_smooth(method = lm)
+p
+#Draw the prediction interval curve using the commands below.
+p + geom_line(aes(y = lwr), color = "red", linetype = "dashed")+
+geom_line(aes(y = upr), color = "red", linetype = "dashed")
+```
+
+(e) Attach the R code and console output you used for (a)-(d). (5 points)
