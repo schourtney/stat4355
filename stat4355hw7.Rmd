@@ -1,0 +1,92 @@
+---
+title: "4355hw7"
+author: "Courtney Schaller"
+date: "4/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(reshape2)
+library(olsrr)
+```
+
+``` {r data}
+football <- read.csv("https://raw.githubusercontent.com/schourtney/stat4355/main/football.csv")
+football <- football %>% rename(team = 1)
+lm <- lm(data = football, y ~ x2 + x7 + x8)
+summary(lm)
+```
+
+1. Perform a thorough residual analysis. (30 points)
+i. List the standardized residuals, the studentized residuals and the R-student residuals for this model.
+(10 points)
+
+```{r}
+football$standres <- stdres(lm)
+football$studres <- studres(lm)
+football$rstudres <- rstudent(lm)
+dfbetas <- as.data.frame(dfbeta(lm)) %>% rename(dfx0 = "(Intercept)", dfx2 = x2, dfx7 = x7, dfx8 = x8)
+football <- cbind(football, dfbetas)
+
+football %>% select(team, standres, studres, rstudres)
+```
+
+
+ii. Plot the bar graphs of the three types of the scaled residuals. (15 points)
+
+```{r}
+football_reshape <- football %>% melt(id = c("team", "y", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9"))
+
+football_reshape %>% ggplot(aes(x = team, y = value, fill = variable)) + geom_bar(stat = "identity", position = "dodge") + coord_flip()
+
+football %>% ggplot(aes(x = reorder(team, standres), y = standres)) + geom_bar(stat = "identity") + coord_flip()
+football %>% ggplot(aes(x = reorder(team, studres), y = studres)) + geom_bar(stat = "identity") + coord_flip()
+football %>% ggplot(aes(x = reorder(team, rstudres), y = rstudres)) + geom_bar(stat = "identity") + coord_flip()
+```
+
+iii. What information is conveyed by them? (5 points)
+We have standardized our residuals by the standard deviation of our residuals to better compare them.
+The scaled residuals all appear to be approximately standard normal-distributed. This means that our residuals between our predicted and actual y-values are centered around zero, and are normally distributed with standard deviation 1. This means we don't have any extreme outliers, and it also shows us the points for which the model very accurately predicted (res ~ 0), and those for which the model did not predict very accurately (|res| > 2)
+
+2. Perform a thorough influence analysis. (30 points)
+i. List potential influential points suggested by the hat values, Cook’s D, DFBETAS, DFFITS, and
+COVRATIO. (10 points)
+
+Kansas City, Seattle, Houston
+
+ii. Plot the graphs of the hat values, the Cook’s D and the DFBETAS. (15 points)
+
+```{r}
+football$index = c(1:28)
+football %>% select(index, team)
+
+football$hat <- hatvalues(lm)
+ggplot(data = football, aes(x = reorder(team, hat), y = hat)) + geom_bar(stat = "identity") + geom_hline(yintercept = 2*3/28) + coord_flip() + ggtitle("Hat Values")
+
+football$cook <- cooks.distance(lm)
+ggplot(data = football, aes(x = reorder(team, cook), y = cook)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("Cook's Distance")
+ols_plot_cooksd_bar(lm)
+
+ggplot(data = football, aes(x = reorder(team, dfx0), y = dfx0)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("DFBETAS intercept") + geom_hline(yintercept = 2/sqrt(28)) + geom_hline(yintercept = -2/sqrt(28))
+ggplot(data = football, aes(x = reorder(team, dfx2), y = dfx2)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("DFBETAS X2") 
+ggplot(data = football, aes(x = reorder(team, dfx7), y = dfx7)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("DFBETAS X7") 
+ggplot(data = football, aes(x = reorder(team, dfx8), y = dfx8)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("DFBETAS X8") 
+ols_plot_dfbetas(lm)
+
+football$dffits <- dffits(lm)
+ggplot(data = football, aes(x = reorder(team, dffits), y = dffits)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("DFFITS")
+ols_plot_dffits(lm)
+
+football$covratio <- covratio(lm)
+ggplot(data = football, aes(x = reorder(team, covratio), y = covratio)) + geom_bar(stat = "identity") + coord_flip() + ggtitle("COVRATIO")
+```
+
+iii. Discuss your results. (5 points)
+We consider DFBETA values with magnitude greater than 2/sqrt(n) (n=28) to be highly influential. None of our values came close to that mark, except for that of the intercept, for which the majority were over it. This suggests that there is not much stability in the intercept for our model, but that our variable coefficients are not very swayed by individual observations.
+
+We consider leverage/hat values greater than 2 times the number of predictors (3) divided by the sample size (28) to indicate high leverage observations. High leverage/hat observations are those with predictor values far from their averages, which greatly influence the model. Such points are Kansas City, Seattle, and Houston.
+
+We consider points with Cook's distance greater than or equal to one to be highly influential. None of our points have Cook's distance greater than 0.1. That being said, Cook's distance is greatest for New England, Atlanta, and the NY Giants, which suggests that these teams influence the model the most (albeit still not by a great amount). In other words, if you had to remove one team from the model, removing New England, Atlanta, or the NY Giants would alter the model much more than removing any other team, especially those with a very low Cook's distance. The converse is also true; removing Cleveland, Chicago, and Pittsburgh would not alter the model as significantly.
+
