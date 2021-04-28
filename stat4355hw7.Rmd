@@ -90,3 +90,26 @@ We consider leverage/hat values greater than 2 times the number of predictors (3
 
 We consider points with Cook's distance greater than or equal to one to be highly influential. None of our points have Cook's distance greater than 0.1. That being said, Cook's distance is greatest for New England, Atlanta, and the NY Giants, which suggests that these teams influence the model the most (albeit still not by a great amount). In other words, if you had to remove one team from the model, removing New England, Atlanta, or the NY Giants would alter the model much more than removing any other team, especially those with a very low Cook's distance. The converse is also true; removing Cleveland, Chicago, and Pittsburgh would not alter the model as significantly.
 
+3. Find the variance inflation factors and comment on multicollinearity in this model. (5 points)
+
+```{r}
+vif(lm)
+```
+A common rule of thumb for VIF is that a score greater than ten indicates high multicollinearity. As ours are all less than 2.1, none of our regression variables appear to be correlated.
+
+4. Construct a normal probability plot of the residuals. Does there seem to be any problem with the normality assumption? (5 points)
+
+```{r}
+football$resid <- resid(lm)
+ggplot(football, aes(x = resid)) + geom_density(binwidth = 1.5) + stat_function(fun = function(n) dnorm(n, mean = 0, sd = 1), color = "red", linetype = "dotted")
+shapiro.test(football$resid)
+```
+There doesn't appear to be a problem with the normality function. Additionally, the Shapiro-Wilk normality test agrees with this evaluation.
+
+5. Construct and interpret a plot of the residuals versus the fitted values. (5 points)
+
+```{r}
+ggplot(lm, aes(x = .fitted, y = .resid)) + geom_point() + geom_smooth(method = "lm")
+```
+Our residuals plot looks very good with a slope and intercept of about 0, with the variables with large residuals evenly scattered left to right and above and below the estimate. Overall there are only eight points above the trendline, versus twenty below, although the majority of the points beneath the trendline are just barely beneath it. This suggests to me that our model barely overestimates some values in its predictions.
+
