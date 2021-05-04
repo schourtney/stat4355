@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(reshape2)
 library(olsrr)
+library(MASS)
+library(knitr)
+library(car)
 ```
 
 ``` {r data}
@@ -23,14 +26,15 @@ summary(lm)
 i. List the standardized residuals, the studentized residuals and the R-student residuals for this model.
 (10 points)
 
-```{r}
+```{r, rows.print=30}
 football$standres <- stdres(lm)
 football$studres <- studres(lm)
 football$rstudres <- rstudent(lm)
 dfbetas <- as.data.frame(dfbeta(lm)) %>% rename(dfx0 = "(Intercept)", dfx2 = x2, dfx7 = x7, dfx8 = x8)
 football <- cbind(football, dfbetas)
 
-football %>% select(team, standres, studres, rstudres)
+minifb <- football %>% dplyr::select(team, standres, studres, rstudres)
+kable(minifb)
 ```
 
 
@@ -60,7 +64,7 @@ ii. Plot the graphs of the hat values, the Cook’s D and the DFBETAS. (15 point
 
 ```{r}
 football$index = c(1:28)
-football %>% select(index, team)
+football %>% dplyr::select(index, team)
 
 football$hat <- hatvalues(lm)
 ggplot(data = football, aes(x = reorder(team, hat), y = hat)) + geom_bar(stat = "identity") + geom_hline(yintercept = 2*3/28) + coord_flip() + ggtitle("Hat Values")
@@ -93,7 +97,7 @@ We consider points with Cook's distance greater than or equal to one to be highl
 3. Find the variance inflation factors and comment on multicollinearity in this model. (5 points)
 
 ```{r}
-vif(lm)
+car::vif(lm)
 ```
 A common rule of thumb for VIF is that a score greater than ten indicates high multicollinearity. As ours are all less than 2.1, none of our regression variables appear to be correlated.
 
