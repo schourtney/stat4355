@@ -1,0 +1,159 @@
+---
+title: "HW8"
+author: "Courtney Schaller"
+date: "5/4/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+1. (Ch 5 p.26, Windmill Data) A research engineer is investigating the use of a windmill to generate electricity. He has collected data on the DC output from his windmill (y) and the corresponding wind velocity (x). (40 points)
+
+```{r, include = FALSE}
+library(tidyverse)
+library(formatR)
+library(car)
+library(multcomp)
+windmill <- read.csv(
+  "https://raw.githubusercontent.com/schourtney/stat4355/main/windmill(1).csv")
+patient <- read.csv(
+  "https://raw.githubusercontent.com/schourtney/stat4355/main/patient.txt", sep = "")
+```
+
+
+(a) Identify the most appropriate transformation for the data using Box-Cox method. Pick the best integer $\lambda$ value. (10 points)
+
+```{r}
+car::boxCox(lm(data = windmill, y~x), plotit = TRUE)
+```
+$$\lambda = 2$$
+
+(b) Perform complete regression analysis with wind velocity (x) on the transformed DC output (y). (30 points)
+
+i. Draw a scatter plot and add a regression line. (5 points)
+```{r}
+windmill <- windmill %>% mutate(ytransform = (y^2 - 1) / 2)
+ggplot(data = windmill, aes(x = x, y = ytransform)) +
+  geom_point() + geom_smooth(method = "lm")
+```
+
+
+ii. Fit a linear regression model. (5 points)
+
+```{r}
+lmwindmill <- lm(data = windmill, ytransform ~ x)
+summary(lmwindmill)
+```
+
+iii. Draw a QQ plot (normal probability plot) and a plot of the studentized residuals versus the fitted values. Interpret them. (10 points)
+
+```{r}
+ggplot(windmill, aes(sample = ytransform)) + stat_qq() + stat_qq_line()
+ggplot(lmwindmill, aes(x = fitted(lmwindmill), y = residuals(lmwindmill))) + geom_point() + geom_smooth(method = "lm") + xlab("Fitted Values") + ylab("Studentized Residuals")
+```
+
+From our residuals vs. fitted plot, we see that our data has a somewhat concave shape; this implies that perhaps a better model exists for our data. Our model overestimates y when x is comparatively high or low, and underestimates y near the average x values. Overall though, the data still fits fairly well to our linear model. Our Q-Q plot is pretty good and supports an assumption of normality, although at the far ends of either side things veer off from expected a bit.
+
+iv. Perform influence analysis. (10 points)
+
+```{r}
+summary(influence.measures(lmwindmill))
+car::influenceIndexPlot(lmwindmill, vars = c("hat", "Cook"))
+car::dfbetasPlots(lmwindmill,intercept=T)
+```
+No points are influential in affecting any regression coefficients and fitted values. None of them are considered leverage points, although points 5 and 22 have the most leverage. No points seem influential to precision of estimation. We need further investigation.
+
+2. (Ch 8 pp.14-15, Patient Data) A hospital is implementing a program to improve service quality and productivity. As part of this program the hospital management is attempting to measure and evaluate patient satisfaction. The data has been collected on a random sample of 25 recently discharged patients. The response variable (y) is satisfaction, a subjective response measure on an increasing scale. The potential aggressor variables are patient age (x1), severity (x2) (an index measuring the severity of the patient’s illness), an indicator of whether the patient is a surgical or medical patient (x3) (0=surgical, 1=medical), and an index measuring the patient’s anxiety level (x4). (35 points)
+
+(a) 
+```{r}
+patient <- patient %>% mutate(x11 = ifelse(Age <=29, 1, 0),
+                              x12 = ifelse(Age <= 39 & Age > 29, 1, 0),
+                              x13 =ifelse(Age <= 49 & Age > 39, 1, 0),
+                              x14 = ifelse(Age <= 59 & Age > 49, 1, 0),
+                              x15 = ifelse(Age > 59, 1, 0))
+```
+
+Test whether or not Age Groups 1, 2 and 3 are different in terms of satisfaction. (15 points)
+
+i. Write down the null and alternative hypotheses. (5 points)
+
+$\beta_{12} = \beta_{13} = \beta_{12}-\beta_{13} = 0$
+
+$H_a: \beta_{13} \neq 0$ or $\beta_{12} \neq 0$ or $\beta_{13} \neq \beta_{12}$
+
+ii. Rewrite the null and alternative hypotheses with appropriate D and d for the general linear hypothesis approach. (5 points)
+
+$satisfaction = \beta_0 + \beta_{12}x_{12} + \beta_{13}x_{13} + \beta_2x_2 + \beta_3x_3 + \beta_4x_4$
+
+```{r, include = FALSE}
+write_matex <- function(x) {
+  begin <- "$$\\begin{bmatrix}"
+  end <- "\\end{bmatrix}$$"
+  X <-
+    apply(x, 1, function(x) {
+      paste(
+        paste(x, collapse = "&"),
+        "\\\\"
+      )
+    })
+  writeLines(c(begin, X, end))
+}
+
+D = matrix(nrow = 3, byrow = TRUE,
+      c(0, 1, 0, 0, 0, 0,
+        0, 0, 1, 0, 0, 0,
+        0, 1, -1, 0, 0, 0))
+
+d = c(0, 0, 0)
+dmat = matrix(d, ncol = 1)
+
+write_matex(D)
+write_matex(dmat)
+```
+$$D = \begin{bmatrix}
+0&1&0&0&0&0 \\
+0&0&-1&0&0&0 \\
+0&1&-1&0&0&0 \\
+\end{bmatrix}$$
+
+$$d = \begin{bmatrix}
+0 \\
+0 \\
+0 \\
+\end{bmatrix}$$
+
+iii. Find the observed test statistic, p-value, and draw a conclusion. (5 points)
+
+```{r}
+lmpatient <- lm(data = patient, Satisfaction ~ x12 + x13 + Severity + Sugical.Medical + Anxiety)
+summary(lmpatient)
+test <- multcomp::glht(lmpatient, linfct = D, rhs = d)
+summary(test, test = Ftest())
+```
+The model finds that $\beta_{12} = 21.500$ and $\beta_{13} = 6.8638$, which therefore means that the difference between $\beta_{12}$ and $\beta_{13}$ is $14.636$. Under the null hypothesis we expect each of these to be equal to 0. Performing an F-test, we see that the likelihood of getting these values for our betas is 0.04639546, which is less than $\alpha=0.05$. Therefore we must reject the null hypothesis and conclude that at age group (below 30, in 30s, or in 40s) does affect satisfaction score.
+
+(b) (20 points)
+
+i. Present the summary table of the fit. (10 points)
+```{r}
+lmpatient2 <- lm(data = patient, Satisfaction ~ x14 + x15 + Severity + Sugical.Medical + Anxiety)
+summary(lmpatient2)
+```
+
+ii. Interpret the regression coefficients. (10 points)
+
+$\beta_0:$ For a theoretical surgical patient under 50 with anxiety and severity scores of zero, our model predicts a satisfaction score of 87.7627.
+
+$\beta_{14}:$ If a patient is in their fifties, we expect their satisfaction to be 16.2392 points lower than someone less than 50 years old.
+
+$\beta_{15}:$ If a patient is older than 60, we expect their satisfaction to be 48.8871 points lower than someone less than 50 years old.
+
+$\beta_2:$ For every unit increase in a patient's illness' severity, we expect a drop in satisfaction by 0.4358 points.
+
+$\beta_3:$ If a patient is a medical patient (as opposed to surgical), we expect a drop in satisfaction by 1.7310 points
+
+$\beta_4:$ For every unit increase in a patient's anxiety, we expect an increase in satisfaction by 4.9538
